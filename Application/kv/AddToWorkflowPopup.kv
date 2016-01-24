@@ -1,0 +1,54 @@
+#: kivy 1.9.0
+			
+<AddToWorkflowPopup>
+	spinner: addtoflowpopup_flow
+	atwp_testscript: atwp_testscript
+	atwp_client: atwp_client
+	atwp_project: atwp_project
+	BoxLayout:
+		orientation: 'vertical'
+		size_hint: 1, 1
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint: 1, 0.3
+			Label:
+				text: 'Filter Values'
+				size_hint: 0.5, 1
+			GridLayout:
+				size_hint: 0.5, 1
+				rows: 2
+				Label:
+					text: 'Client'
+				Spinner:
+					on_text: app.ApplyWorkflowPopupFilter(self, args[0])
+					id: atwp_client
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint: 1, 0.3
+			GridLayout:
+				size_hint: 0.5, 1
+				rows: 2
+				Label:
+					text: 'Project'
+				Spinner:
+					on_text: app.ApplyWorkflowPopupFilter(self, args[0])
+					id: atwp_project
+			GridLayout:
+				size_hint: 0.5, 1
+				rows: 2
+				Label:
+					text: 'TestScript'
+				Spinner:
+					size_hint: 0.5, 1
+					on_text: app.ApplyWorkflowPopupFilter_Script(self, args[0])
+					id: atwp_testscript
+		GridLayout:
+			cols: 2
+			size_hint: 1, 0.4
+			Spinner:
+				text: 'Flow'
+				id: addtoflowpopup_flow
+			Button:
+				text: 'Add'
+				on_press: app.AddToFlow(self, args[0])
+				size_hint: 1, 0.1

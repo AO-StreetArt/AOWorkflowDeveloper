@@ -1,0 +1,44 @@
+#: kivy 1.9.0
+
+<CreateWorkflowPopup>
+	new_flow: new_workflow_name_text
+	spinner: createflowpopup_flow
+	cwp_client: cwp_client
+	cwp_project: cwp_project
+	BoxLayout:
+		orientation: 'vertical'
+		size_hint: 1, 1
+		TextInput:
+			hint_text: 'Workflow Name'
+			id: new_workflow_name_text
+			size_hint: 1, 0.3
+		BoxLayout:
+			orientation: 'horizontal'
+			size_hint: 1, 0.3
+			GridLayout:
+				rows: 2
+				size_hint: 0.5, 1
+				Label:
+					text: 'Client'
+				Spinner:
+					on_text: app.ApplyCreateWorkflowPopupFilterI(self, args[0])
+					id: cwp_client
+			GridLayout:
+				rows: 2
+				size_hint: 0.5, 1
+				Label:
+					text: 'Project'
+				Spinner:
+					on_text: app.ApplyCreateWorkflowPopupFilterII(self, args[0])
+					id: cwp_project
+		GridLayout:
+			cols: 2
+			id: create_workflow_popup_results
+			size_hint: 1, 0.4
+			Spinner:
+				text: 'TestScript'
+				id: createflowpopup_flow
+			Button:
+				text: 'Add'
+				on_press: app.CreateFlow(self, args[0])
+				size_hint: 1, 0.1

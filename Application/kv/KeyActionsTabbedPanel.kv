@@ -1,0 +1,49 @@
+#: kivy 1.9.0
+
+<ProductPanel>
+	product_spinner: product_spinner
+	product_text: product_text
+	BoxLayout:
+		size_hint: 1, 1
+		orientation: 'vertical'
+		GridLayout:
+			cols: 2
+			size_hint: 1, 0.4
+			Label:
+				text: 'Product'
+			TextInput:
+				id: product_text
+		GridLayout:
+			cols: 2
+			size_hint: 1, 0.3
+			Label:
+				text: 'Load Product'
+			Spinner:
+				id: product_spinner
+		Button:
+			text: 'Save'
+			size_hint: 1, 0.3
+			on_press: app.SaveProductPanel(self, args[0])
+				
+<ConnectionsPanel>
+	db: db
+	BoxLayout:
+		size_hint: 1, 1
+		orientation: 'vertical'
+		DatabaseWidget:
+			size_hint: 1, 1
+			id: db
+
+<KeyActionTabbedPanel>
+	size_hint: 1, 1
+	ka_prodpanel: ka_prodpanel
+	conn_panel: conn_panel
+	do_default_tab: False
+	TabbedPanelItem:
+		text: 'Product'
+		ProductPanel:
+			id: ka_prodpanel
+	TabbedPanelItem:
+		text: 'Connections'
+		ConnectionsPanel:
+			id: conn_panel
