@@ -18,6 +18,7 @@ From a terminal, the below will clone down the repository into a fresh folder on
 
 ```
 git clone *Paste the URL shown in the main page here*
+```
 
 ###Windows Dependency Installs
 
