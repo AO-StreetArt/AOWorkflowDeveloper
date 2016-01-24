@@ -43,7 +43,7 @@ from src.dbadmin.Writer import CSVWriter, ExcelWriter, TerminalWriter
 from src.dbadmin.DataStream import DataStream
 
 from src.export.ExcelExporter import TemplateReader
-from src.export.ObjectClasses import _Workflow, _KeyAction
+from src.export.ObjectClasses import _Workflow, _KeyAction, _InputParameter
 
 import os
 import os.path
@@ -579,6 +579,16 @@ class KeyActionCacheManager():
             self.remove(key)
             return True
         return False
+        
+#Manager for the different kinds of caches
+class CacheManager():
+    
+    def __init__(self):
+        self.caches = {}
+        self.caches['keyaction'] = KeyActionCacheManager()
+        
+    def key_action_cache(self):
+        return self.caches['keyaction']
             
 #------------------------------------------------------------
 #----------------Filter Manager------------------------------
@@ -1889,6 +1899,9 @@ writer = DatabaseWriter()
 
 #Create the filter manager
 filter = FilterManager()
+
+#Create the cache manager
+cache = CacheManager()
 
 #Create the export template reader
 tr = TemplateReader('test.db')
@@ -3808,35 +3821,56 @@ class TestScriptBuilderApp(App):
         
         del carousel_ids[:]
         
-        if numSelected > 1:
+        if numSelected >= 1:
             for action in selected_ids:
-                rows = session.query(KeyAction).\
-                    filter(KeyAction.id==action).all()
-                if len(rows) > 1:
-                    #More than one business key is found
-                    Logger.debug('Business Key Violation encountered in Key Action table')
-                elif len(rows) == 1:
-                    #Exactly one business key is found
+                
+                #Check if the action is in the cache (we utilize ID's as the keys here)
+                c_action = cache.caches['keyaction'].get_keyaction(ka_id=action)
+                from_cache=False
+                
+                if c_action is not None:
+                    final_action = c_action
+                    from_cache=True
+                    Logger.debug('Key Action Loaded from Cache')
+                else:
+                    rows = session.query(KeyAction).filter(KeyAction.id==action).all()
+                    Logger.debug('Key Action Loaded from Database')
+                    if len(rows) > 1:
+                        #More than one business key is found
+                        Logger.debug('Business Key Violation encountered in Key Action table')
+                    elif len(rows) == 1:
+                        #Exactly one business key is found
+                        final_action = rows[0]
                     
                     #Add the key action to the list of id's in the carousel
-                    carousel_ids.append(rows[0].id)
+                    carousel_ids.append(final_action.id)
                     
                     #Create the Key Action Carousel Item
                     keyaction = KeyActionCarouselItem(app=self)
                     
                     #Set the Module & System Area
-                    sa_rows = session.query(SystemArea).join(KeyAction).filter(KeyAction.id == action)
-                    keyaction.sa_in.text = sa_rows[0].name
-                    mod_rows = session.query(Module).join(SystemArea).join(KeyAction).filter(KeyAction.id == action)
-                    keyaction.module_in.text = mod_rows[0].name
+                    if from_cache:
+                        sa = final_action.systemarea
+                        mo = final_action.module
+                    else:
+                        sa_rows = session.query(SystemArea).join(KeyAction).filter(KeyAction.id == action)
+                        mod_rows = session.query(Module).join(SystemArea).join(KeyAction).filter(KeyAction.id == action)
+                        sa = sa_rows[0]
+                        mo = mod_rows[0]
+                        
+                    keyaction.module_in.text = mo.name
+                    keyaction.sa_in.text = sa.name
                     
                     #Set the Key Action attributes
-                    keyaction.ka_in.text = rows[0].name
-                    keyaction.desc_in.text = rows[0].description
-                    keyaction.custom_in.active = rows[0].custom
+                    keyaction.ka_in.text = final_action.name
+                    keyaction.desc_in.text = final_action.description
+                    keyaction.custom_in.active = final_action.custom
                     
-                    #Get the Input Parameters
-                    ip_rows = session.query(InputParameter).join(KeyAction).filter(KeyAction.id == action).all()
+                    if from_cache:
+                        ip_rows = final_action.input_parameters
+                    else:
+                        #Get the Input Parameters
+                        ip_rows = session.query(InputParameter).join(KeyAction).filter(KeyAction.id == action).all()
                     
                     #Add the base widget to the screen in the carousel
                     self.root.get_screen('keyactiongroup').ids.carousel_ka.add_widget(keyaction)
@@ -3854,53 +3888,25 @@ class TestScriptBuilderApp(App):
                         keyaction.id_list.append(ip.id)
                         keyaction.iplist[i].text = ip.name
                         i+=1
+                       
+                    if from_cache == False:
+                        #Add the Key Action to the cache
+                        new_cache_action = _KeyAction()
+                        new_cache_action.id = final_action.id
+                        new_cache_action.name = final_action.name
+                        new_cache_action.description = final_action.description
+                        new_cache_action.custom = final_action.custom
+                        new_cache_action.systemarea = sa.name
+                        new_cache_action.module = mo.name
+                        for ip in ip_rows:
+                            c_ip = _InputParameter()
+                            c_ip.id = ip.id
+                            c_ip.name = ip.name
+                            new_cache_action.input_parameters.append(c_ip)
+                        cache.caches['keyaction'].add(new_cache_action, '%s' % (new_cache_action.id))
                 else:
                     #No matching business keys are found
                     Logger.debug('Business Key Called from UI that does not exist in DB')
-            
-        elif numSelected == 1:
-            action = selected_ids[0]
-            rows = session.query(KeyAction).filter(KeyAction.id==action).all()
-            if len(rows) > 1:
-                #More than one business key is found
-                Logger.debug('Business Key Violation encountered in Key Action table')
-            elif len(rows) == 1:
-                #Exactly one business key is found
-                keyaction = KeyActionCarouselItem(app=self)
-                
-                #Add the key action to the list of id's in the carousel
-                carousel_ids.append(rows[0].id)
-                
-                #Set the Module & System Area
-                sa_rows = session.query(SystemArea).join(KeyAction).filter(KeyAction.id == action)
-                keyaction.sa_in.text = sa_rows[0].name
-                mod_rows = session.query(Module).join(SystemArea).join(KeyAction).filter(KeyAction.id == action)
-                keyaction.module_in.text = mod_rows[0].name
-                
-                #Set the Key Action attributes
-                keyaction.ka_in.text = rows[0].name
-                keyaction.desc_in.text = rows[0].description
-                keyaction.custom_in.active = rows[0].custom
-                    
-                #Get the Input Parameters
-                ip_rows = session.query(InputParameter).join(KeyAction).filter(KeyAction.id == action).all()
-                   
-                #Add the base widget to the screen in the carousel
-                self.root.get_screen('keyactiongroup').ids.carousel_ka.add_widget(keyaction)
-                    
-                #Add Text Inputs to IP Grid
-                for ip in ip_rows:
-                    ip_input = TextInput(hint_text='Input Parameter')
-                    keyaction.ipgrid_in.add_widget(ip_input)
-                    keyaction.iplist.append(ip_input)
-                        
-                #Set the IP attributes
-                i=0
-                for ip in ip_rows:
-                    keyaction.name_list.append(ip.name)
-                    keyaction.id_list.append(ip.id)
-                    keyaction.iplist[i].text = ip.name
-                    i+=1
                     
             else:
                 #No matching business keys are found
