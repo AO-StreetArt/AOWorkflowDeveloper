@@ -42,6 +42,7 @@ from src.dbadmin.Writer import CSVWriter, ExcelWriter, TerminalWriter
 from src.dbadmin.DataStream import DataStream
 
 from src.export.ExcelExporter import TemplateReader
+from src.export.ObjectClasses import _Workflow, _KeyAction
 
 import os
 import os.path
@@ -457,6 +458,14 @@ if len(seed_workflows) == 0:
     session.add(seed_workflow)
 else:
     seed_workflow = seed_workflows[0]
+    
+#------------------------------------------------------------
+#----------------Cache Manager-------------------------------
+#------------------------------------------------------------
+    
+class CacheManager():
+    #Class to manage the application cache
+    pass
 
 #------------------------------------------------------------
 #----------------Filter Manager------------------------------
