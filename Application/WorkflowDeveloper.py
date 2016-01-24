@@ -469,15 +469,24 @@ class KeyActionCacheManager():
 
     def __init__(self):
         self._cache_name = 'keyaction_cache'
-        Cache.register(self._cache_name, limit=50, timeout=300)
+        self._cache_limit = 30
+        self._cache_timeout = 150
+        Cache.register(self._cache_name, limit=self._cache_limit, timeout=self._cache_timeout)
     
-    def add(obj, key):
+    def add(self, obj, key):
         Cache.append(self._cache_name, key, obj)
+        
+    def remove(self, key):
+        Cache.remove(self._cache_name, key)
     
-    def find(key):
+    def find(self, key):
         return Cache.get(self._cache_name, key)
         
-    def add_keyaction(*args, **kwds):
+    def purge(self):
+        Cache.remove(self._cache_name)
+        Cache.register(self._cache_name, limit=self._cache_limit, timeout=self._cache_timeout)
+        
+    def add_keyaction(self, *args, **kwds):
         key=''
         act = _KeyAction()
 
@@ -510,6 +519,67 @@ class KeyActionCacheManager():
             return True
         return False
         
+    def get_keyaction(self, *args, **kwds):
+        key=''
+        
+        if kwds.has_key('name') and kwds.has_key('ka_id'):
+            
+            #Both a name and ID are passed in, we need to check both
+            act.id = kwds['ka_id']
+            key='%s' % (act.id)
+            return_value=self.find(key)
+            
+            if return_value is None:
+                act.name = kwds['name']
+                key='%s' % (act.name)
+                return_value=self.find(key)
+        else:
+            if kwds.has_key('ka_id'):
+                #An ID only is passed in, so we check it
+                act.id = kwds['ka_id']
+                key='%s' % (act.id)
+                return_value=self.find(key)
+                
+            elif kwds.has_key('name'):
+                #A name only is passed in, so we check it
+                act.name = kwds['name']
+                key='%s' % (act.name)
+                return_value=self.find(key)
+                
+        return return_value
+        
+    def remove_keyaction(self, *args, **kwds):
+        key=''
+        
+        if kwds.has_key('name') and kwds.has_key('ka_id'):
+            
+            #Both a name and ID are passed in, we need to check both
+            act.id = kwds['ka_id']
+            key='%s' % (act.id)
+            return_value=self.find(key)
+            
+            if return_value is None:
+                act.name = kwds['name']
+                key='%s' % (act.name)
+                return_value=self.find(key)
+        else:
+            if kwds.has_key('ka_id'):
+                #An ID only is passed in, so we check it
+                act.id = kwds['ka_id']
+                key='%s' % (act.id)
+                return_value=self.find(key)
+                
+            elif kwds.has_key('name'):
+                #A name only is passed in, so we check it
+                act.name = kwds['name']
+                key='%s' % (act.name)
+                return_value=self.find(key)
+                
+        if return_value is not None:
+            self.remove(key)
+            return True
+        return False
+            
 #------------------------------------------------------------
 #----------------Filter Manager------------------------------
 #------------------------------------------------------------
