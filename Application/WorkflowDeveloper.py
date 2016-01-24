@@ -47,6 +47,44 @@ import os
 import os.path
 import platform
 
+import xml.etree.ElementTree as ET
+
+#------------------------------------------------------------
+#----------------Configuration File Read---------------------
+#------------------------------------------------------------
+
+#Read the XML Config File
+_config_path = os.path.abspath('../Configuration/config.xml')
+self.tree = ET.parse(_config_path)
+self.root = self.tree.getroot()
+name=''
+value=''
+engine_path = 'sqlite:///test.db'
+engine_name = 'test.db'
+sqlite_logging="debug"
+popup_filter_limit=10
+for child in self.root:
+    #Allow for the XML File to be split into segments
+    for param in child:
+        name=''
+        value=''
+        for val in param:
+            if val.tag == 'Name':
+                name=val.text
+            elif val.tag == 'Value':
+                value=val.text
+                
+            #Find the name specified and assign the appropriate environment variable
+            if name != '' and value != '':
+                if name == 'EnginePath':
+                    engine_path=value
+                elif name == 'EngineName':
+                    engine_name=value
+                elif name == 'SQLiteLogging':
+                    sqlite_logging=value
+                elif name == 'PopupFilterLimit':
+                    popup_filter_limit=int(float(value))
+
 #------------------------------------------------------------
 #----------------ORM-----------------------------------------
 #------------------------------------------------------------
@@ -380,18 +418,15 @@ class FlowchartPositionImport(Base):
 #----------------SQLAlchemy Connections----------------------
 #------------------------------------------------------------
 
-engine_path = 'sqlite:///test.db'
-engine_name = 'test.db'
-
 #Figure out whether we are running on windows or unix
 #Connect to the DB
 #echo=True turns on query logging
 #echo="debug" turns on query + result logging
 #echo=False turns off query logging
 if platform.system() == 'Windows':
-    engine = create_engine(engine_path, echo="debug")
+    engine = create_engine(engine_path, echo=sqlite_logging)
 else:
-    engine = create_engine(engine_path, echo="debug")
+    engine = create_engine(engine_path, echo=sqlite_logging)
 
 #Connect to the DB
 #echo=True turns on query logging
@@ -1769,7 +1804,7 @@ writer = DatabaseWriter()
 filter = FilterManager()
 
 #Create the export template reader
-tr = TemplateReader('test.db')
+tr = TemplateReader(engine_name)
 
 #Create the Selection List
 selected = []
@@ -1779,9 +1814,6 @@ selected_ids = []
 
 #Create the list of id's in the key action carousel
 carousel_ids = []
-
-#Number of values returned in popup filters
-popup_filter_limit = 10
 
 class KeyActionGroupScreen(Screen):
     pop_up=ObjectProperty(None)

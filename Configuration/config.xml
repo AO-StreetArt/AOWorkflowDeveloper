@@ -1,0 +1,22 @@
+<WorkflowDeveloperConfiguration>
+	<SQLite>
+		<Param>
+			<Name>EnginePath</Name>
+			<Value>sqlite:///test.db</Value>
+		</Param>
+		<Param>
+			<Name>EngineName</Name>
+			<Value>test.db</Value>
+		</Param>
+		<Param>
+			<Name>SQLiteLogging</Name>
+			<Value>debug</Value>
+		</Param>
+	</SQLite>
+	<UI>
+		<Param>
+			<Name>PopupFilterLimit</Name>
+			<Value>10</Value>
+		</Param>
+	</UI>
+</WorkflowDeveloperConfiguration>
