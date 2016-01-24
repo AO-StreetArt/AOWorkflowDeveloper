@@ -84,27 +84,28 @@ You can find documentation on using the Workflow Developer in the 'Documentation
 
 #Other Suggested Tools
 
-1.	Microsoft Excel (Proprietary, Windows)
+-	Microsoft Excel (Proprietary, Windows)
 
 You can get Excel [here](https://products.office.com/en-us/excel)
 
 Excel is used for the Key Action Data Loader as well as for exports
 
-2.	SQLite DB Browser (Open Source, Windows)
+-	SQLite DB Browser (Open Source, Windows)
 
 You can get the DB Browser [here](http://sqlitebrowser.org/)
 
 The DB Browser can be used to directly interact with the database underneath the application.
 
-3.	sqlite3 (Open Source, Linux)
+-	sqlite3 (Open Source, Linux)
 
 You can install sqlite3 on Ubuntu 14.04 with the following:
 
 ```
 sudo apt-get install sqlite3
 ```
+
 Sqlite3 can be used to directly interact with the database underneath the application.
 
-4.	CSV-Based Scripts
+-	CSV-Based Scripts
 
 CSV Files are also accepted for Key Action Dataloaders, meant to encourage scripting to generate these lists.
