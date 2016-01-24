@@ -19,6 +19,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner
 from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
+from kivy.cache import Cache
 
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
@@ -463,10 +464,52 @@ else:
 #----------------Cache Manager-------------------------------
 #------------------------------------------------------------
     
-class CacheManager():
-    #Class to manage the application cache
-    pass
+#A cache manager for the Key Actions
+class KeyActionCacheManager():
 
+    def __init__(self):
+        self._cache_name = 'keyaction_cache'
+        Cache.register(self._cache_name, limit=50, timeout=300)
+    
+    def add(obj, key):
+        Cache.append(self._cache_name, key, obj)
+    
+    def find(key):
+        return Cache.get(self._cache_name, key)
+        
+    def add_keyaction(*args, **kwds):
+        key=''
+        act = _KeyAction()
+
+        if kwds.has_key('ka_id'):
+            act.id = kwds['ka_id']
+            key='%s' % (act.id)
+            
+        if kwds.has_key('name'):
+            act.name = kwds['name']
+            if key == '':
+                key='%s' % (act.name)
+            
+        if kwds.has_key('description'):
+            act.description = kwds['description']
+            
+        if kwds.has_key('expected_result'):
+            act.expected_result = kwds['expected_result']
+            
+        if kwds.has_key('module'):
+            act.module = kwds['module']
+            
+        if kwds.has_key('system_area'):
+            act.system_area = kwds['system_area']
+            
+        if kwds.has_key('input_parameters'):
+            act.input_parameters = kwds['input_parameters']
+        
+        if key != '':
+            self.add(act, key)
+            return True
+        return False
+        
 #------------------------------------------------------------
 #----------------Filter Manager------------------------------
 #------------------------------------------------------------
