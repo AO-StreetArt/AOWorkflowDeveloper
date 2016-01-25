@@ -55,15 +55,15 @@ import xml.etree.ElementTree as ET
 
 #Read the XML Config File
 _config_path = os.path.abspath('../Configuration/config.xml')
-self.tree = ET.parse(_config_path)
-self.root = self.tree.getroot()
+tree = ET.parse(_config_path)
+root = tree.getroot()
 name=''
 value=''
 engine_path = 'sqlite:///test.db'
 engine_name = 'test.db'
 sqlite_logging="debug"
 popup_filter_limit=10
-for child in self.root:
+for child in root:
     #Allow for the XML File to be split into segments
     for param in child:
         name=''

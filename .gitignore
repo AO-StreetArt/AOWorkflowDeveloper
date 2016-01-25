@@ -62,4 +62,5 @@ target/
 .ipynb_checkpoints
 
 #SQLite Database
-test.db
+*.db
+*.db-journal
