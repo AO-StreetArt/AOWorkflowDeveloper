@@ -16,7 +16,7 @@
 	<Body>
 		<Page name='Script Overview'>
             <Segment cell='A1'>
-                <Title>?1 - ?2 - ?3 Script Overview</Title>
+                <Title>Script Overview</Title>
                 <Header>
                     <Column>Workflow Name</Column>
                     <Column>Action Name</Column>

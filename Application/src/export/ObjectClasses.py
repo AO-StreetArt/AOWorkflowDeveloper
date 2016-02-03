@@ -26,6 +26,7 @@ class _Workflow():
         num_rows = 0
         for action in self.keyactions:
             num_rows+=action.numParams()
+        return num_rows
         
 class _KeyAction():
     def __init__(self):

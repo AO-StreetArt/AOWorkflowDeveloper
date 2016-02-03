@@ -1,0 +1,57 @@
+<Template name='Test Script Export'>
+	<InputParameters>
+		<Value>Test Script</Value>
+		<Value>Project</Value>
+		<Value>Client</Value>
+		<Value>Title</Value>
+	</InputParameters>
+    <Header>
+        <Row>
+			<Element start_cell='A1' end_cell='E1'>?0</Element>
+		</Row>
+		<Row>
+			<Element start_cell='A2' end_cell='E2'>?1</Element>
+		</Row>
+	</Header>
+	<Body>
+		<Page name='System Coverage'>
+			<Segment cell='A1'>
+				<Title>Script Products</Title>
+				<Header>
+					<Column>Products</Column>
+				</Header>
+				<Query>select distinct(product.name) from workflowaction wfa left join workflow w on wfa.workflowid = w.id left join keyaction ka on wfa.keyactionid = ka.id left join systemarea sa on ka.systemareaid = sa.id left join module m on sa.moduleid = m.id left join testscript ts on w.testscriptid = ts.id left join project pr on ts.projectid = pr.id left join client cl on pr.clientid = cl.id left join product on m.productid = product.id where ts.name = '?0' and pr.name = '?1' and cl.name = '?3' and m.name not in ('');</Query>
+			</Segment>
+			<Segment cell='A1'>
+				<Title>Script Modules</Title>
+				<Header>
+					<Column>Modules</Column>
+				</Header>
+				<Query>select distinct(m.name) from workflowaction wfa left join workflow w on wfa.workflowid = w.id left join keyaction ka on wfa.keyactionid = ka.id left join systemarea sa on ka.systemareaid = sa.id left join module m on sa.moduleid = m.id left join testscript ts on w.testscriptid = ts.id left join project pr on ts.projectid = pr.id left join client cl on pr.clientid = cl.id where ts.name = '?0' and pr.name = '?1' and cl.name = '?2' and m.name not in ('');</Query>
+			</Segment>
+			<Segment cell='A1'>
+				<Title>Script System Areas</Title>
+				<Header>
+					<Column>Modules</Column>
+				</Header>
+				<Query>select distinct(sa.name) from workflowaction wfa left join workflow w on wfa.workflowid = w.id left join keyaction ka on wfa.keyactionid = ka.id left join systemarea sa on ka.systemareaid = sa.id left join module m on sa.moduleid = m.id left join testscript ts on w.testscriptid = ts.id left join project pr on ts.projectid = pr.id left join client cl on pr.clientid = cl.id where ts.name = '?0' and pr.name = '?1' and cl.name = '?2' and m.name not in ('');</Query>
+			</Segment>
+		</Page>
+		<Page name='Script Overview'>
+            <Segment cell='A1'>
+                <Title>?0 Script Overview</Title>
+                <Header>
+                    <Column>Workflow Name</Column>
+                    <Column>Action Name</Column>
+					<Column>Description</Column>
+					<Column>Custom</Column>
+					<Column>Expected Result</Column>
+                </Header>
+                <Query>select w.name, ka.name, ka.description, ka.custom, wa.expectedresult from (((((workflowaction wa left join workflownextaction wna on wa.id = wna.keyactionid) left join workflow w on w.id = wa.workflowid) left join keyaction ka on wa.keyactionid = ka.id) left join testscript ts on ts.id = w.testscriptid) left join project p on ts.projectid = p.id) left join client c on p.clientid = c.id where ts.name = '?0' and p.name = '?1' and c.name = '?2' order by w.id, wna.nextactionid;</Query>
+            </Segment>
+        </Page>
+		<Page name='Test Script Steps'>
+			<TestScriptSteps cell='A1'>Test</TestScriptSteps>
+        </Page>
+	</Body>
+</Template>

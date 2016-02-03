@@ -77,15 +77,15 @@ class TemplateReader():
         num_columns=9
         
         #Write the top header
-        top_cell = '%s%s' % (Utils.get_column_letter(int_row), int_col)
-        body_ws[top_cell] = flow.name
+        top_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
+        worksheet[top_cell] = flow.name
         if platform.system() == 'Windows':
-            header_ws[top_cell].font = self.header_font
-            header_ws[top_cell].fill = self.header_fill
-            header_ws[top_cell].border = self.header_border
-            header_ws[top_cell].alignment = self.header_alignment
-            header_ws[top_cell].number_format = self.header_number_format
-        header_ws.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_row), int_col, Utils.get_column_letter(int_row), int_col + num_columns))
+            worksheet[top_cell].font = self.header_font
+            worksheet[top_cell].fill = self.header_fill
+            worksheet[top_cell].border = self.header_border
+            worksheet[top_cell].alignment = self.header_alignment
+            worksheet[top_cell].number_format = self.header_number_format
+        worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col), int_row + num_columns))
         int_row+=1
         
         #Write the column headers
@@ -93,52 +93,53 @@ class TemplateReader():
         
         list_counter=0
         for column in column_list:
-            cell = '%s%s' % (Utils.get_column_letter(int_row), int_col)
-            body_ws[cell] = column_list[list_counter]
+            cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
+            worksheet[cell] = column_list[list_counter]
             int_col+=1
             list_counter+=1
             
             if platform.system() == 'Windows':
-                header_ws[cell].font = self.header_font
-                header_ws[cell].fill = self.header_fill
-                header_ws[cell].border = self.header_border
-                header_ws[cell].alignment = self.header_alignment
-                header_ws[cell].number_format = self.header_number_format
+                worksheet[cell].font = self.header_font
+                worksheet[cell].fill = self.header_fill
+                worksheet[cell].border = self.header_border
+                worksheet[cell].alignment = self.header_alignment
+                worksheet[cell].number_format = self.header_number_format
         int_col=1
         int_row+=1
         
         #Write the workflow
-        wf_cell = '%s%s' % (Utils.get_column_letter(int_row), int_col)
-        body_ws[wf_cell] = flow.name
-        header_ws.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_row), int_col, Utils.get_column_letter(int_row + flow.num_rows()), int_col))
+        wf_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
+        worksheet[wf_cell] = flow.name
+        worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col + flow.numRows()), int_row))
         int_col = 2
         
         #Write the KeyActions
         for action in flow.keyactions:
             
             #Write the action name
-            ka_cell = '%s%s' % (Utils.get_column_letter(int_row), int_col)
-            body_ws[ka_cell] = action.name
-            header_ws.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_row), int_col, Utils.get_column_letter(int_row + action.numParams()), int_col))
+            ka_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
+            worksheet[ka_cell] = action.name
+            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col + action.numParams()), int_row))
             
             #Write the action description
-            desc_cell = '%s%s' % (Utils.get_column_letter(int_row), int_col + 1)
-            body_ws[desc_cell] = action.description
-            header_ws.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_row), int_col + 1, Utils.get_column_letter(int_row + action.numParams()), int_col + 1))
+            desc_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row + 1)
+            worksheet[desc_cell] = action.description
+            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row + 1, Utils.get_column_letter(int_col + action.numParams()), int_row + 1))
             
             #Write the input parameters for the key action
             param_row = int_row
             for param in action.input_parameters:
-                param_cell = '%s%s' % (Utils.get_column_letter(param_row), int_col + 2)
-                body_ws[param_cell] = param.name
-                param_value_cell = '%s%s' % (Utils.get_column_letter(param_row), int_col + 3)
-                body_ws[param_value_cell] = param.value
+                param_cell = '%s%s' % (Utils.get_column_letter(int_col), param_row + 2)
+                worksheet[param_cell] = param.name
+                param_value_cell = '%s%s' % (Utils.get_column_letter(int_col), param_row + 3)
+                worksheet[param_value_cell] = param.value
                 param_row+=1
+            int_row+=1
                 
             #Write Expected Result
-            er_cell = '%s%s' % (Utils.get_column_letter(int_row), int_col + 4)
-            body_ws[er_cell] = action.expected_result
-            header_ws.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_row), int_col + 4, Utils.get_column_letter(int_row + action.numParams()), int_col + 4))
+            er_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row + 4)
+            worksheet[er_cell] = action.expected_result
+            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row + 4, Utils.get_column_letter(int_col + action.numParams()), int_row + 4))
             int_row+=1
             
     #Query the DB And generate a _Workflow object
@@ -148,7 +149,7 @@ class TemplateReader():
         num_rows = 0
         
         #Find the workflow
-        self.cur.execute('select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid) left join project p on ts.projectid = p.id) left join client c on p.clientid = c.id where wf.name = %s and ts.name = %s and p.name = %s and c.name = %s order by w.id;' % (workflow_name, testscript, project, client))
+        self.cur.execute("select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid left join project p on ts.projectid = p.id left join client c on p.clientid = c.id where wf.name = '%s' and ts.name = '%s' and p.name = '%s' and c.name = '%s' order by wf.id;" % (workflow_name, testscript, project, client))
         flow = self.cur.fetchone()
         
         workflow = _Workflow()
@@ -156,7 +157,7 @@ class TemplateReader():
         workflow.id = flow[0]
         
         #Find the Key Actions for the workflow
-        self.cur.execute('select ka.id, ka.name, ka.description, ka.custom, wfa.expectedresult, wfa.notes from ((workflowaction wfa left join keyaction ka on wfa.keyactionid = ka.id) left join workflow w on wfa.workflowid = w.id) where w.id = %s;' % (workflow[0]))
+        self.cur.execute("select ka.id, ka.name, ka.description, ka.custom, wfa.expectedresult, wfa.notes from workflowaction wfa left join keyaction ka on wfa.keyactionid = ka.id left join workflow w on wfa.workflowid = w.id where w.id = '%s';" % (workflow.id))
         keyactions = self.cur.fetchall()
         
         for action in keyactions:
@@ -273,7 +274,9 @@ class TemplateReader():
                                 param_counter+=3
                                 
                                 #Find the workflows associated with the test script
-                                self.cur.execute('select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid) left join project p on ts.projectid = p.id) left join client c on p.clientid = c.id where ts.name = %s and p.name = %s and c.name = %s order by w.id;' % (segment.text, params[1], params[2]))
+                                q = "select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid left join project p on ts.projectid = p.id left join client c on p.clientid = c.id where ts.name = '%s' and p.name = '%s' and c.name = '%s' order by wf.id;" % (params[0], params[1], params[2])
+                                self.cur.execute(q)
+                                print(q)
                                 workflows = self.cur.fetchall()
                                 
                                 #Iterate over the cells
@@ -355,9 +358,10 @@ class TemplateReader():
                                                     del text[wc_counter + 1]
                                                     param_counter+=1
                                                 wc_counter+=1
-                                            self.cur.execute(''.join(text))
+                                                query = ''.join(text)
+                                            self.cur.execute(query)
                                         data = self.cur.fetchall()
-                                        print('query %s executed' % (child.text))
+                                        print('query %s executed' % (query))
                                         i=3
                                         for row in data:
                                             j=0

@@ -1,0 +1,17 @@
+<Template name='Test Script Export'>
+	<InputParameters>
+		<Value>Test Script</Value>
+		<Value>Project</Value>
+		<Value>Client</Value>
+	</InputParameters>
+    <Header>
+        <Row>
+			<Element start_cell='A1' end_cell='E1'>Test Script Export</Element>
+		</Row>
+	</Header>
+	<Body>
+		<Page name='Test Script Steps'>
+			<TestScriptSteps cell='A1'>Test</TestScriptSteps>
+        </Page>
+	</Body>
+</Template>

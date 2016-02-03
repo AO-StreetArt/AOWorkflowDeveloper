@@ -2022,26 +2022,27 @@ class TestScriptBuilderApp(App):
          self.root.get_screen('keyactiongroup').pop_up = popup
          
          #Generate the parameter list
-         xml_path = os.path.abspath('../export_templates/%s' % (self.root.get_screen('keyactiongroup').original_pop_up.content.conn_panel.db.type_spinner.text))
+         xml_path = os.path.abspath('../Configuration/ExportTemplates/%s' % (self.root.get_screen('keyactiongroup').original_pop_up.content.conn_panel.db.type_spinner.text))
          params = tr.generate_parameter_list(xml_path)
          
          #Add the parameter list as text inputs to the popup
-         for param in params:
-             inp = TextInput(hint_text = '%s' % (param), multiline = False)
+         i=0
+         j=len(params)
+         for i in range(0, j):
+             inp = TextInput(hint_text = '%s' % (params[i]), multiline = False)
              popup.content.input_grid.add_widget(inp)
-         but = Button(text = 'Execute')
-         but.bind(on_press=self.ExecuteExport)
-         popup.content.input_grid.add_widget(but)
          
          #Show the popup
          popup.open()
          
     def ExecuteExport(self, *args):
          params = []
-         xml_path = os.path.abspath('../export_templates/%s' % (self.root.get_screen('keyactiongroup').original_pop_up.content.conn_panel.db.type_spinner.text))
+         xml_path = os.path.abspath('../Configuration/ExportTemplates/%s' % (self.root.get_screen('keyactiongroup').original_pop_up.content.conn_panel.db.type_spinner.text))
          popup=self.root.get_screen('keyactiongroup').pop_up
+
+        #Fix for reversed input parameters
          for inp in popup.content.input_grid.children:
-             params.append(inp.text)
+             params.insert(0, inp.text)
          tr.translate_template(xml_path, params)
      
     def RunMigration(self, *args):
@@ -2187,7 +2188,7 @@ class TestScriptBuilderApp(App):
              #Populate the values in the data type spinner values with the xml templates in the
              #src.export_templates folder
              del self.root.get_screen('keyactiongroup').pop_up.content.conn_panel.db.type_spinner.values[:]
-             for file in tr.select_files_in_folder(os.path.abspath("../export_templates"), 'xml'):
+             for file in tr.select_files_in_folder(os.path.abspath("../Configuration/ExportTemplates"), 'xml'):
                  self.root.get_screen('keyactiongroup').pop_up.content.conn_panel.db.type_spinner.values.append(os.path.basename(file))
              self.root.get_screen('keyactiongroup').pop_up.content.conn_panel.db.type_spinner.text = ''
              self.root.get_screen('keyactiongroup').pop_up.content.conn_panel.db.finddestpopup_button.disabled = True
