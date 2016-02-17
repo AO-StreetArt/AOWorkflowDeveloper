@@ -85,7 +85,7 @@ class TemplateReader():
             worksheet[top_cell].border = self.header_border
             worksheet[top_cell].alignment = self.header_alignment
             worksheet[top_cell].number_format = self.header_number_format
-        worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col), int_row + num_columns))
+        worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col+num_columns), int_row))
         int_row+=1
         
         #Write the column headers
@@ -110,7 +110,11 @@ class TemplateReader():
         #Write the workflow
         wf_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
         worksheet[wf_cell] = flow.name
-        worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col + flow.numRows()), int_row))
+        if flow.numRows() == 0:
+            numrows = 0
+        else:
+            numrows = flow.numRows() - 1
+        worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col), int_row + numrows))
         int_col = 2
         
         #Write the KeyActions
@@ -119,28 +123,30 @@ class TemplateReader():
             #Write the action name
             ka_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
             worksheet[ka_cell] = action.name
-            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col + action.numParams()), int_row))
+#            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col), int_row + action.numParams()))
             
             #Write the action description
-            desc_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row + 1)
+            desc_cell = '%s%s' % (Utils.get_column_letter(int_col+1), int_row)
             worksheet[desc_cell] = action.description
-            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row + 1, Utils.get_column_letter(int_col + action.numParams()), int_row + 1))
+#            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col+1), int_row, Utils.get_column_letter(int_col + 1), int_row + action.numParams()))
             
             #Write the input parameters for the key action
             param_row = int_row
             for param in action.input_parameters:
-                param_cell = '%s%s' % (Utils.get_column_letter(int_col), param_row + 2)
+                param_cell = '%s%s' % (Utils.get_column_letter(int_col+2), param_row)
                 worksheet[param_cell] = param.name
-                param_value_cell = '%s%s' % (Utils.get_column_letter(int_col), param_row + 3)
+                param_value_cell = '%s%s' % (Utils.get_column_letter(int_col+3), param_row)
                 worksheet[param_value_cell] = param.value
                 param_row+=1
-            int_row+=1
                 
             #Write Expected Result
-            er_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row + 4)
+            er_cell = '%s%s' % (Utils.get_column_letter(int_col+4), int_row)
             worksheet[er_cell] = action.expected_result
-            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row + 4, Utils.get_column_letter(int_col + action.numParams()), int_row + 4))
-            int_row+=1
+#            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col+4), int_row, Utils.get_column_letter(int_col + 1), int_row + action.numParams()))
+            if action.numParams() == 0:
+                int_row+=1
+            else:
+                int_row+=action.numParams()
             
     #Query the DB And generate a _Workflow object
     def generate_workflow_export(self, workflow_name, testscript, project, client, worksheet, row, column):
@@ -155,6 +161,7 @@ class TemplateReader():
         workflow = _Workflow()
         workflow.name = flow[1]
         workflow.id = flow[0]
+        print('Workflow %s created with ID %s' % (workflow.name, workflow.id))
         
         #Find the Key Actions for the workflow
         self.cur.execute("select ka.id, ka.name, ka.description, ka.custom, wfa.expectedresult, wfa.notes from workflowaction wfa left join keyaction ka on wfa.keyactionid = ka.id left join workflow w on wfa.workflowid = w.id where w.id = '%s';" % (workflow.id))
@@ -172,18 +179,27 @@ class TemplateReader():
                 keyaction.custom = True
             keyaction.expected_result = action[4]
             keyaction.notes = action[5]
-            workflow.add_keyaction(keyaction)
+            print('Key Action %s created' % (keyaction.name))
+            print('Description: %s' % (keyaction.description))
+            print('Custom: %s' % (keyaction.custom))
+            print('Expected Result: %s' % (keyaction.expected_result))
             
             #Find the Input Parameters for the Key Action
             self.cur.execute('select ip.id, ip.name, wp.value from ((inputparameter ip left join keyaction ka on ip.keyactionid = ka.id) left join workflowparam wp on wp.inputparamid = ip.id) where ka.id = %s;' % (action[0]))
             inputparameters = self.cur.fetchall()
-            for param in inputparameters:
-                input_parameter = _InputParameter()
-                input_parameter.id = param[0]
-                input_parameter.name = param[1]
-                input_parameter.value = param[2]
-                keyaction.add_inputparameter(input_parameter)
+            if len(inputparameters) == 0:
                 num_rows+=1
+            else:
+                for param in inputparameters:
+                    input_parameter = _InputParameter()
+                    input_parameter.id = param[0]
+                    input_parameter.name = param[1]
+                    input_parameter.value = param[2]
+                    keyaction.add_inputparameter(input_parameter)
+                    print('Input Parameter %s added to keyaction %s' % (input_parameter.name, keyaction.name))
+                    num_rows+=1
+            workflow.add_keyaction(keyaction)
+            print('Key Action %s added to Workflow %s' % (keyaction.name, workflow.name))
                 
         #Write the _Workflow object to the Excel Sheet
         self.execute_workflow_export(workflow, worksheet, row, column)
@@ -288,7 +304,7 @@ class TemplateReader():
                                 for workflow in workflows:
                                     w_row = row + flow_counter
                                     w_col = col
-                                    flow_counter += self.generate_workflow_export(workflow[1], params[0], params[1], params[2], body_ws, w_row, w_col)
+                                    flow_counter += 2 + self.generate_workflow_export(workflow[1], params[0], params[1], params[2], body_ws, w_row, w_col)
                             elif segment.tag == 'WorkflowSteps':
                                 #Execute a single workflow export
                             
