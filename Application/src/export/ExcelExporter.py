@@ -68,7 +68,39 @@ class TemplateReader():
                     param_list.append(value.text)
         return param_list
         
+    #Write a Key Action Block
+    #Pass in a key action object, and the row and column
+    def write_key_action_block(self, keyaction, int_row, int_col):
+        #Write the action name
+        ka_cell = '%s%s' % (Utils.get_column_letter(int_col), int_row)
+        worksheet[ka_cell] = action.name
+#            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col), int_row, Utils.get_column_letter(int_col), int_row + action.numParams()))
+        
+        #Write the action description
+        desc_cell = '%s%s' % (Utils.get_column_letter(int_col+1), int_row)
+        worksheet[desc_cell] = action.description
+#            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col+1), int_row, Utils.get_column_letter(int_col + 1), int_row + action.numParams()))
+        
+        #Write the input parameters for the key action
+        param_row = int_row
+        for param in action.input_parameters:
+            param_cell = '%s%s' % (Utils.get_column_letter(int_col+2), param_row)
+            worksheet[param_cell] = param.name
+            param_value_cell = '%s%s' % (Utils.get_column_letter(int_col+3), param_row)
+            worksheet[param_value_cell] = param.value
+            param_row+=1
+            
+        #Write Expected Result
+        er_cell = '%s%s' % (Utils.get_column_letter(int_col+4), int_row)
+        worksheet[er_cell] = action.expected_result
+#            worksheet.merge_cells('%s%s:%s%s' % (Utils.get_column_letter(int_col+4), int_row, Utils.get_column_letter(int_col + 1), int_row + action.numParams()))
+        if action.numParams() == 0:
+            int_row+=1
+        else:
+            int_row+=action.numParams()
+                
     #Take a _Workflow object and write it to the specified excel worksheet
+    #This is a very basic export without ordering, should be removed
     def execute_workflow_export(self, flow, worksheet, row, column):
         #Export the _Workflow object to the specified row and column on the excel sheet
         
@@ -149,13 +181,14 @@ class TemplateReader():
                 int_row+=action.numParams()
             
     #Query the DB And generate a _Workflow object
-    def generate_workflow_export(self, workflow_name, testscript, project, client, worksheet, row, column):
+    def generate_workflow_export(self, workflow_id):
         
         #The number of rows in the workflow to be returned
         num_rows = 0
         
         #Find the workflow
-        self.cur.execute("select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid left join project p on ts.projectid = p.id left join client c on p.clientid = c.id where wf.name = '%s' and ts.name = '%s' and p.name = '%s' and c.name = '%s' order by wf.id;" % (workflow_name, testscript, project, client))
+        self.cur.execute("select wf.id from workflow wf where wf.id = %s" % (workflow_id))
+#        self.cur.execute("select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid left join project p on ts.projectid = p.id left join client c on p.clientid = c.id where wf.name = '%s' and ts.name = '%s' and p.name = '%s' and c.name = '%s' order by wf.id;" % (workflow_name, testscript, project, client))
         flow = self.cur.fetchone()
         
         workflow = _Workflow()
@@ -184,6 +217,27 @@ class TemplateReader():
             print('Custom: %s' % (keyaction.custom))
             print('Expected Result: %s' % (keyaction.expected_result))
             
+            #Find the Next Actions for the Key Action
+            self.cur.execute("select ka.id, ka.name, ka.description, ka.custom, wfa.expectedresult, wfa.notes from workflowaction wfa left join keyaction ka on wfa.keyactionid = ka.id where ka.id = %s;" % (action.id))
+            keyactions = self.cur.fetchall()
+            for action in nextactions:
+            
+                ka = _KeyAction()
+                ka.id = action[0]
+                ka.name = action[1]
+                ka.description = action[2]
+                if action[3] == 0:
+                    ka.custom = False
+                else:
+                    ka.custom = True
+                ka.expected_result = action[4]
+                ka.notes = action[5]
+                print('Key Action %s created' % (ka.name))
+                print('Description: %s' % (ka.description))
+                print('Custom: %s' % (ka.custom))
+                print('Expected Result: %s' % (ka.expected_result))
+                keyaction.add_nextaction(ka)
+            
             #Find the Input Parameters for the Key Action
             self.cur.execute('select ip.id, ip.name, wp.value from ((inputparameter ip left join keyaction ka on ip.keyactionid = ka.id) left join workflowparam wp on wp.inputparamid = ip.id) where ka.id = %s;' % (action[0]))
             inputparameters = self.cur.fetchall()
@@ -202,10 +256,39 @@ class TemplateReader():
             print('Key Action %s added to Workflow %s' % (keyaction.name, workflow.name))
                 
         #Write the _Workflow object to the Excel Sheet
-        self.execute_workflow_export(workflow, worksheet, row, column)
+#        self.execute_workflow_export(workflow, worksheet, row, column)
             
-        return num_rows
-    
+        return workflow
+        
+    def process_for_wildcard(self, text, params, wc_counter, param_counter):
+        wc_counter = 0
+        for i in text:
+            if i == '?':
+                text[wc_counter] = params[int(text[wc_counter + 1])]
+                print('Parameter %s used' % (params[int(text[wc_counter + 1])]))
+                del text[wc_counter + 1]
+                param_counter+=1
+            wc_counter+=1
+            
+    def set_header_font(self, cell):
+        if platform.system() == 'Windows':
+            cell.font = self.header_font
+            cell.fill = self.header_fill
+            cell.border = self.header_border
+            cell.alignment = self.header_alignment
+            cell.number_format = self.header_number_format
+            
+    def set_base_font(self, cell):
+        if platform.system() == 'Windows':
+            cell.font = self.base_font
+            cell.fill = self.base_fill
+            cell.border = self.base_border
+            cell.alignment = self.base_alignment
+            cell.number_format = self.base_number_format
+            
+    def write_workflow_header(self, row, column):
+        pass
+
     #Takes in the XML path of the template file
     #params is a list of the input parameters for the template
     #Look for '?' in the xml values and replace it with the next up param
@@ -251,21 +334,9 @@ class TemplateReader():
                             #correct parameter
                             else:
                                 text = list(element.text)
-                                wc_counter = 0
-                                for i in text:
-                                    if i == '?':
-                                        text[wc_counter] = params[int(text[wc_counter + 1])]
-                                        print('Parameter %s used' % (params[int(text[wc_counter + 1])]))
-                                        del text[wc_counter + 1]
-                                        param_counter+=1
-                                    wc_counter+=1
+                                text = self.process_for_wildcard(text, params, wc_counter, param_counter)
                                 header_ws[element.attrib['start_cell']] = ''.join(text)
-                            if platform.system() == 'Windows':
-                                header_ws[element.attrib['start_cell']].font = self.header_font
-                                header_ws[element.attrib['start_cell']].fill = self.header_fill
-                                header_ws[element.attrib['start_cell']].border = self.header_border
-                                header_ws[element.attrib['start_cell']].alignment = self.header_alignment
-                                header_ws[element.attrib['start_cell']].number_format = self.header_number_format
+                            self.set_header_font(header_ws[element.attrib['start_cell']])
                             header_ws.merge_cells('%s:%s' % (element.attrib['start_cell'], element.attrib['end_cell']))
                             print('Header element placed')
                 elif child.tag == 'Body':
@@ -275,47 +346,57 @@ class TemplateReader():
                         segment_counter = 0
                         body_ws = self.wb.create_sheet(page.attrib['name'])
                         for segment in page:
-                            if segment.tag == 'TestScriptSteps':
+                            if segment.tag == 'TestScript':
                                 #Execute the specialized Test Script Steps Export
                                 #This segment needs to be hardcoded due to the ability to construct
                                 #nonlinear workflows.
                                 #Here, we process a full testscript and output each workflow in an optimized state
                             
-                                #We expect the first input parameter to be Test Script, then Project, then Client, 
-                                #After those, others can be used and added to the template
-                            
                                 start_cell = segment.attrib['cell']
-                                
-                                #Set the parameter counter so that it doesn't break after running this
-                                param_counter+=3
-                                
-                                #Find the workflows associated with the test script
-                                q = "select wf.id, wf.name from workflow wf left join testscript ts on ts.id = wf.testscriptid left join project p on ts.projectid = p.id left join client c on p.clientid = c.id where ts.name = '%s' and p.name = '%s' and c.name = '%s' order by wf.id;" % (params[0], params[1], params[2])
-                                self.cur.execute(q)
-                                print(q)
-                                workflows = self.cur.fetchall()
-                                
-                                #Iterate over the cells
+                                flow_list=[]
+                                header_list=[]
+                                db_column_list=[]
+                                for query_segment in segment:
+                                    if query_segment.tag == 'Query':
+                                        #Execute the query and place the results into the flow list, 
+                                        #we need the first column in the query to be workflow.id and this should be unique
+                                        if '?' not in query_segment.text:
+                                            self.cur.execute(query_segment.text)
+                                        #If a wildcard is encountered, we need to replace it with the
+                                        #correct parameter
+                                        else:
+                                            text = list(query_segment.text)
+                                            text = self.process_for_wildcard(text, params, wc_counter, param_counter)
+                                            self.cur.execute(text)
+                                        print('query %s executed' % (text))
+                                        workflows = self.cur.fetchall()
+                                        
+                                        #Find the flow list for the testscript
+                                        for workflow in workflows:
+                                            flow = self.generate_workflow_export(workflow[0])
+                                            flow_list.append(flow)
+                                            
+                                    if query_segment.tag == 'KeyActionBlock':
+                                        for header_segment in query_segment:
+                                            if header_segment.tag == 'Column':
+                                                header_list.append(header_segment.text)
+                                                db_column_list.append(header_segment.text)
+                                            elif header_segment.tag == 'Blank':
+                                                header_list.append(header_segment.text)
+                                        
+                                #Find the row and col of the start cell
                                 col = Utils.column_index_from_string(start_cell[0])
                                 row = int(float(start_cell[1]))
                                 
-                                flow_counter = 0
-                                
-                                for workflow in workflows:
-                                    w_row = row + flow_counter
-                                    w_col = col
-                                    flow_counter += 2 + self.generate_workflow_export(workflow[1], params[0], params[1], params[2], body_ws, w_row, w_col)
-                            elif segment.tag == 'WorkflowSteps':
-                                #Execute a single workflow export
-                            
-                                start_cell = segment.attrib['cell']
-                                
-                                col = Utils.column_index_from_string(start_cell[0])
-                                row = int(float(start_cell[1]))
-                            
-                                #We expect the first input parameter to be Test Script, then Project, then Client, then Workflow
-                                #After those, others can be used and added to the template
-                                self.generate_workflow_export(params[3], params[0], params[1], params[2], row, col)
+                                for f in flow_list:
+                                    #Build the key action trees and store them in memory
+                                    f.build_keyactiontree()
+                                    
+                                    #TO-DO: Write the workflow to the sheet
+                                    
+                                    #Write the header
+                                    self.write_workflow_header(header_list, row, col)
+
                             else:
                                 for child in segment:
                                     if child.tag == 'Title':
@@ -325,21 +406,9 @@ class TemplateReader():
                                         #correct parameter
                                         else:
                                             text = list(child.text)
-                                            wc_counter = 0
-                                            for i in text:
-                                                if i == '?':
-                                                    text[wc_counter] = params[int(text[wc_counter + 1])]
-                                                    print('Parameter %s used' % (params[int(text[wc_counter + 1])]))
-                                                    del text[wc_counter + 1]
-                                                    param_counter+=1
-                                                wc_counter+=1
+                                            text = self.process_for_wildcard(text, params, wc_counter, param_counter)
                                             body_ws[segment.attrib['cell']] = ''.join(text)
-                                        if platform.system() == 'Windows':
-                                            body_ws[segment.attrib['cell']].font = self.header_font
-                                            body_ws[segment.attrib['cell']].fill = self.header_fill
-                                            body_ws[segment.attrib['cell']].border = self.header_border
-                                            body_ws[segment.attrib['cell']].alignment = self.header_alignment
-                                            body_ws[segment.attrib['cell']].number_format = self.header_number_format
+                                        self.set_header_font(body_ws[segment.attrib['cell']])
                                         print('Data Title element %s placed in cell %s' % (child.text, segment.attrib['cell']))
                                         segment_counter+=1
                                     elif child.tag == 'Header':
@@ -349,12 +418,7 @@ class TemplateReader():
                                             cell = Utils.coordinate_from_string(segment.attrib['cell'])
                                             col = Utils.column_index_from_string(cell[0])
                                             body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)] = column.text
-                                            if platform.system() == 'Windows':
-                                                body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)].font = self.base_font
-                                                body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)].fill = self.base_fill
-                                                body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)].border = self.base_border
-                                                body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)].alignment = self.base_alignment
-                                                body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)].number_format = self.base_number_format
+                                            self.set_base_font(body_ws['%s%s' % (Utils.get_column_letter(col+i), 1 + segment_counter)])
                                             print('Data Header element %s placed in cell %s%s' % (column.text, Utils.get_column_letter(col+i), 2))
                                             i+=1
                                         segment_counter+=1
@@ -366,18 +430,10 @@ class TemplateReader():
                                         #correct parameter
                                         else:
                                             text = list(child.text)
-                                            wc_counter = 0
-                                            for i in text:
-                                                if i == '?':
-                                                    text[wc_counter] = params[int(text[wc_counter + 1])]
-                                                    print('Parameter %s used' % (params[int(text[wc_counter + 1])]))
-                                                    del text[wc_counter + 1]
-                                                    param_counter+=1
-                                                wc_counter+=1
-                                                query = ''.join(text)
-                                            self.cur.execute(query)
+                                            text = self.process_for_wildcard(text, params, wc_counter, param_counter)
+                                            self.cur.execute(text)
                                         data = self.cur.fetchall()
-                                        print('query %s executed' % (query))
+                                        print('query %s executed' % (text))
                                         i=3
                                         for row in data:
                                             j=0
@@ -387,12 +443,7 @@ class TemplateReader():
                                                 cell = Utils.coordinate_from_string(segment.attrib['cell'])
                                                 col = Utils.column_index_from_string(cell[0])
                                                 body_ws['%s%s' % (Utils.get_column_letter(col+j), i)] = e
-                                                if platform.system() == 'Windows':
-                                                    body_ws['%s%s' % (Utils.get_column_letter(col+j), i)].font = self.base_font
-                                                    body_ws['%s%s' % (Utils.get_column_letter(col+j), i)].fill = self.base_fill
-                                                    body_ws['%s%s' % (Utils.get_column_letter(col+j), i)].border = self.base_border
-                                                    body_ws['%s%s' % (Utils.get_column_letter(col+j), i)].alignment = self.base_alignment
-                                                    body_ws['%s%s' % (Utils.get_column_letter(col+j), i)].number_format = self.base_number_format
+                                                self.set_base_font(body_ws['%s%s' % (Utils.get_column_letter(col+j), i)])
                                                 print('Data Element %s placed in column %s%s' % (e, Utils.get_column_letter(col+i), j))
                                                 j+=1
                                             i+=1
